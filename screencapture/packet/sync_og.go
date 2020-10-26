@@ -20,7 +20,9 @@ func NewSyncOgPacketFromBytes(data []byte) (SyncOgPacket, error) {
 	}
 	packet := SyncOgPacket{ClockRef: clockRef, CorrelationID: correlationID}
 
-	packet.Unknown = binary.LittleEndian.Uint32(remainingBytes)
+	if len(remainingBytes) != 0 {
+		packet.Unknown = binary.LittleEndian.Uint32(remainingBytes)
+	}
 	return packet, nil
 }
 
