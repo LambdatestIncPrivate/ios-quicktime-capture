@@ -61,6 +61,15 @@ func (mp *MessageProcessor) ReceiveData(data []byte) {
 	case packet.PingPacketMagic:
 		log.Info("PING received")
 		mp.usbWriter.WriteDataToUsb(packet.NewPingPacketAsBytes())
+		go func() {
+			log.Debug("Sleep for 200 ms")
+			time.Sleep(200 * time.Millisecond)
+			deviceInfo := packet.NewAsynHpd1Packet(packet.CreateHpd1DeviceInfoDict())
+			log.Debug("Sending ASYN HPD1")
+			mp.usbWriter.WriteDataToUsb(deviceInfo)
+			log.Debug("Sending ASYN HPD1")
+			mp.usbWriter.WriteDataToUsb(deviceInfo)
+		}()
 		return
 	case packet.SyncPacketMagic:
 		mp.handleSyncPacket(data)
