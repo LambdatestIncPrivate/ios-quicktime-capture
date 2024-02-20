@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
 	"github.com/stretchr/testify/assert"
 )
 

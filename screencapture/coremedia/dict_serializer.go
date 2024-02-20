@@ -2,7 +2,7 @@ package coremedia
 
 import (
 	"encoding/binary"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/common"
 	"log"
 )
 

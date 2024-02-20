@@ -17,10 +17,10 @@ import (
 	"time"
 
 	"github.com/danielpaulus/go-ios/ios"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/diagnostics"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/gstadapter"
 	"github.com/docopt/docopt-go"
 	log "github.com/sirupsen/logrus"
 )

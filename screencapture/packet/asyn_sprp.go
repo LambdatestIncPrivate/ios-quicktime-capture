@@ -3,7 +3,7 @@ package packet
 import (
 	"fmt"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
 )
 
 //AsynSprpPacket seems to be a set property packet sent by the device.

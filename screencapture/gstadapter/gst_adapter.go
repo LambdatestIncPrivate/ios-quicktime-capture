@@ -7,7 +7,7 @@ import (
 	"runtime"
 
 	"github.com/danielpaulus/gst"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
 	"github.com/lijo-jose/glib"
 	log "github.com/sirupsen/logrus"
 )

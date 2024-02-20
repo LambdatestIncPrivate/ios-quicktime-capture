@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/diagnostics"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/diagnostics"
 	"github.com/stretchr/testify/assert"
 )
 

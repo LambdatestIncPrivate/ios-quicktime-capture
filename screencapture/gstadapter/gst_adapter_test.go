@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/gstadapter"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/gstadapter"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )

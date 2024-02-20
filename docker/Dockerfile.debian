@@ -4,7 +4,7 @@ RUN apt-get update && apt install -y libgstreamer1.0-0 gstreamer1.0-plugins-base
 #Other dependencies
 RUN apt-get update && apt install -y wget zip libusb-1.0 
 
-RUN wget https://github.com/danielpaulus/quicktime_video_hack/releases/download/v0.2-beta/bin.zip
+RUN wget https://github.com/LambdatestIncPrivate/ios-quicktime-capture/releases/download/v0.2-beta/bin.zip
 
 RUN unzip bin.zip
 RUN chmod +x /bin/linux/qvh

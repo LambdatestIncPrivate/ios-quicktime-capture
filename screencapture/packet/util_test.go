@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/packet"
 	"github.com/stretchr/testify/assert"
 )
 

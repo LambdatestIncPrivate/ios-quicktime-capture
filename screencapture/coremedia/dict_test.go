@@ -4,9 +4,9 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/packet"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/common"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/packet"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )

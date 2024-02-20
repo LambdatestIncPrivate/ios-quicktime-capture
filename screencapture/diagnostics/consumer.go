@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
 	log "github.com/sirupsen/logrus"
 )
 

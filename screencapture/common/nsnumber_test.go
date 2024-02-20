@@ -1,7 +1,7 @@
 package common_test
 
 import (
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/common"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

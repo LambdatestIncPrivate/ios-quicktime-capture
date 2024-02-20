@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
 )
 
 //SyncTimePacket contains the data from a decoded Time Packet sent by the device

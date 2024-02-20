@@ -3,8 +3,8 @@ package packet
 import (
 	"encoding/binary"
 
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/common"
-	"github.com/danielpaulus/quicktime_video_hack/screencapture/coremedia"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/common"
+	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
 )
 
 //Async Packet types

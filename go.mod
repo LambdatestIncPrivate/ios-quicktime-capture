@@ -1,4 +1,4 @@
-module github.com/danielpaulus/quicktime_video_hack
+module github.com/LambdatestIncPrivate/ios-quicktime-capture
 
 go 1.16
 
