@@ -1,5 +1,11 @@
 package main
 
+/*
+#cgo pkg-config: libusb-1.0
+#include <libusb.h>
+*/
+import "C"
+
 import (
 	"bufio"
 	"encoding/json"
@@ -22,8 +28,11 @@ import (
 const version = "v0.6-beta"
 
 func main() {
+	var ctx *C.libusb_context
+	C.libusb_init(&ctx)
+	defer C.libusb_exit(ctx)
 	usage := fmt.Sprintf(`Q.uickTime V.ideo H.ack (qvh) %s
-
+	
 Usage:
   qvh devices [-v]
   qvh activate [--udid=<udid>] [-v]
@@ -181,8 +190,8 @@ The commands work as following:
 	}
 }
 
-//findDevice grabs the first device on the host for a empty --udid
-//or tries to find the provided device otherwise
+// findDevice grabs the first device on the host for a empty --udid
+// or tries to find the provided device otherwise
 func findDevice(udid string) (screencapture.IosDevice, error) {
 	if udid == "" {
 		return screencapture.FindIosDevice("")
@@ -329,17 +338,17 @@ func activate(device screencapture.IosDevice) {
 }
 
 func deactivate(device screencapture.IosDevice) {
-        log.Debugf("Disabling device: %v", device)
-        var err error
-        device, err = screencapture.DisableQTConfig(device)
-        if err != nil {
-                printErrJSON(err, "Error disabling QT config")
-                return
-        }
+	log.Debugf("Disabling device: %v", device)
+	var err error
+	device, err = screencapture.DisableQTConfig(device)
+	if err != nil {
+		printErrJSON(err, "Error disabling QT config")
+		return
+	}
 
-        printJSON(map[string]interface{}{
-                "device_activated": device.DetailsMap(),
-        })
+	printJSON(map[string]interface{}{
+		"device_activated": device.DetailsMap(),
+	})
 }
 
 func record(h264FilePath string, wavFilePath string, device screencapture.IosDevice) {
@@ -473,7 +482,7 @@ func printJSON(output map[string]interface{}) {
 	println(string(text))
 }
 
-//this is to ban these irritating "2021/04/29 14:27:59 handle_events: error: libusb: interrupted [code -10]" libusb messages
+// this is to ban these irritating "2021/04/29 14:27:59 handle_events: error: libusb: interrupted [code -10]" libusb messages
 type LogrusWriter int
 
 const interruptedError = "interrupted [code -10]"

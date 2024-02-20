@@ -9,9 +9,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//MessageProcessor is used to implement the control flow of USB messages answers and replies.
-//It receives readily split byte frames, parses them, responds to them and passes on
-//extracted CMSampleBuffers to a consumer
+// MessageProcessor is used to implement the control flow of USB messages answers and replies.
+// It receives readily split byte frames, parses them, responds to them and passes on
+// extracted CMSampleBuffers to a consumer
 type MessageProcessor struct {
 	usbWriter                                UsbWriter
 	stopSignal                               chan interface{}
@@ -33,14 +33,14 @@ type MessageProcessor struct {
 	audioOnly                                bool
 }
 
-//NewMessageProcessor creates a new MessageProcessor that will write answers to the given UsbWriter,
+// NewMessageProcessor creates a new MessageProcessor that will write answers to the given UsbWriter,
 // forward extracted CMSampleBuffers to the CMSampleBufConsumer and wait for the stopSignal.
 func NewMessageProcessor(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, audioOnly bool) MessageProcessor {
 	clockBuilder := func(ID uint64) coremedia.CMClock { return coremedia.NewCMClockWithHostTime(ID) }
 	return NewMessageProcessorWithClockBuilder(usbWriter, stopSignal, consumer, clockBuilder, audioOnly)
 }
 
-//NewMessageProcessorWithClockBuilder lets you inject a clockBuilder for the sake of testability.
+// NewMessageProcessorWithClockBuilder lets you inject a clockBuilder for the sake of testability.
 func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan interface{}, consumer CmSampleBufConsumer, clockBuilder func(uint64) coremedia.CMClock, audioOnly bool) MessageProcessor {
 	var mp = MessageProcessor{
 		usbWriter:           usbWriter,
@@ -54,8 +54,8 @@ func NewMessageProcessorWithClockBuilder(usbWriter UsbWriter, stopSignal chan in
 	return mp
 }
 
-//ReceiveData waits for byte frames of the correct length without the length field.
-//This function will only accept byte frames starting with the ASYN, SYNC or PING uint32 magic.
+// ReceiveData waits for byte frames of the correct length without the length field.
+// This function will only accept byte frames starting with the ASYN, SYNC or PING uint32 magic.
 func (mp *MessageProcessor) ReceiveData(data []byte) {
 	switch binary.LittleEndian.Uint32(data) {
 	case packet.PingPacketMagic:
@@ -278,8 +278,8 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 	}
 }
 
-//CloseSession shuts down the streams on the device by sending HPA0 and HPD0
-//messages and waiting for RELS messages.
+// CloseSession shuts down the streams on the device by sending HPA0 and HPD0
+// messages and waiting for RELS messages.
 func (mp *MessageProcessor) CloseSession() {
 	log.Info("Telling device to stop streaming..")
 	mp.usbWriter.WriteDataToUsb(packet.NewAsynHPA0(mp.deviceAudioClockRef))
