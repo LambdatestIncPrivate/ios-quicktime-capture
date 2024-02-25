@@ -227,7 +227,7 @@ func (mp *MessageProcessor) handleAsyncPacket(data []byte) {
 		mp.videoSamplesReceived++
 		err = mp.cmSampleBufConsumer.Consume(feedPacket.CMSampleBuf)
 		if err != nil {
-			log.Fatal("Failed writing sample data to Consumer", err)
+			log.Errorf("Failed writing sample data to Consumer", err)
 		}
 		if mp.videoSamplesReceived%500 == 0 {
 			log.Debugf("Rcv'd(%d) last:%s", mp.videoSamplesReceived, feedPacket.String())
