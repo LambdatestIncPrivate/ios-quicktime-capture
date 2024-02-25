@@ -48,6 +48,7 @@ func main() {
 	}()
 
 	record(ctxWithCancel, device)
+	// sleep aded on purpose to keep the program running until mp4 file is created
 	time.Sleep(5 * time.Second)
 
 }
