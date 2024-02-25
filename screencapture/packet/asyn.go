@@ -7,7 +7,7 @@ import (
 	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
 )
 
-//Async Packet types
+// Async Packet types
 const (
 	AsynPacketMagic uint32 = 0x6173796E
 	FEED            uint32 = 0x66656564 //These contain CMSampleBufs which contain raw h264 Nalus
@@ -24,12 +24,12 @@ const (
 	HPA0            uint32 = 0x68706130
 )
 
-//NewAsynHpd1Packet creates a []byte containing a valid ASYN packet with the Hpd1 dictionary
+// NewAsynHpd1Packet creates a []byte containing a valid ASYN packet with the Hpd1 dictionary
 func NewAsynHpd1Packet(stringKeyDict coremedia.StringKeyDict) []byte {
 	return newAsynDictPacket(stringKeyDict, HPD1, EmptyCFType)
 }
 
-//NewAsynHpa1Packet creates a []byte containing a valid ASYN packet with the Hpa1 dictionary
+// NewAsynHpa1Packet creates a []byte containing a valid ASYN packet with the Hpa1 dictionary
 func NewAsynHpa1Packet(stringKeyDict coremedia.StringKeyDict, clockRef CFTypeID) []byte {
 	return newAsynDictPacket(stringKeyDict, HPA1, clockRef)
 }
@@ -45,7 +45,7 @@ func newAsynDictPacket(stringKeyDict coremedia.StringKeyDict, subtypeMarker uint
 	return append(header, serialize...)
 }
 
-//AsynNeedPacketBytes can be used to create the NEED message as soon as the clockRef from SYNC CVRP has been received.
+// AsynNeedPacketBytes can be used to create the NEED message as soon as the clockRef from SYNC CVRP has been received.
 func AsynNeedPacketBytes(clockRef CFTypeID) []byte {
 	needPacketLength := 20
 	packet := make([]byte, needPacketLength)
@@ -56,13 +56,13 @@ func AsynNeedPacketBytes(clockRef CFTypeID) []byte {
 	return packet
 }
 
-//CreateHpd1DeviceInfoDict creates a dict.StringKeyDict that needs to be sent to the device before receiving a feed
+// CreateHpd1DeviceInfoDict creates a dict.StringKeyDict that needs to be sent to the device before receiving a feed
 func CreateHpd1DeviceInfoDict() coremedia.StringKeyDict {
 	resultDict := coremedia.StringKeyDict{Entries: make([]coremedia.StringKeyEntry, 3)}
 	displaySizeDict := coremedia.StringKeyDict{Entries: make([]coremedia.StringKeyEntry, 2)}
 	resultDict.Entries[0] = coremedia.StringKeyEntry{
 		Key:   "Valeria",
-		Value: true,
+		Value: false,
 	}
 	resultDict.Entries[1] = coremedia.StringKeyEntry{
 		Key:   "HEVCDecoderSupports444",
@@ -86,7 +86,7 @@ func CreateHpd1DeviceInfoDict() coremedia.StringKeyDict {
 	return resultDict
 }
 
-//CreateHpa1DeviceInfoDict creates a dict.StringKeyDict that needs to be sent to the device before receiving a feed
+// CreateHpa1DeviceInfoDict creates a dict.StringKeyDict that needs to be sent to the device before receiving a feed
 func CreateHpa1DeviceInfoDict() coremedia.StringKeyDict {
 	asbdBytes := make([]byte, 56)
 	coremedia.DefaultAudioStreamBasicDescription().SerializeAudioStreamBasicDescription(asbdBytes)
@@ -123,7 +123,7 @@ func CreateHpa1DeviceInfoDict() coremedia.StringKeyDict {
 	return resultDict
 }
 
-//NewAsynHPD0 creates the bytes needed for stopping video streaming
+// NewAsynHPD0 creates the bytes needed for stopping video streaming
 func NewAsynHPD0() []byte {
 	length := 20
 	data := make([]byte, length)
@@ -134,7 +134,7 @@ func NewAsynHPD0() []byte {
 	return data
 }
 
-//NewAsynHPA0 creates the bytes needed for stopping audio streaming
+// NewAsynHPA0 creates the bytes needed for stopping audio streaming
 func NewAsynHPA0(clockRef uint64) []byte {
 	length := 20
 	data := make([]byte, length)

@@ -101,7 +101,7 @@ func (usbAdapter *UsbAdapter) StartReading(device IosDevice, receiver UsbDataRec
 		return err
 	}
 	log.Debug("Endpoint claimed")
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	log.Infof("Device '%s' USB connection ready, waiting for ping..", device.SerialNumber)
 	go func() {
 		lengthBuffer := make([]byte, 4)
