@@ -22,7 +22,6 @@ static const AVRational SCRCPY_TIME_BASE = {1, 1000000000}; // timestamps in us
 #define PACKET_FLAG_CONFIG (UINT64_C(1) << 63)
 #define PACKET_PTS_MASK (PACKET_FLAG_KEY_FRAME - 1)
 
-
 // Global cancellation flag
 _Atomic bool cancelled = false;
 
@@ -30,7 +29,6 @@ _Atomic bool cancelled = false;
 void set_cancelled(bool state) {
     atomic_store(&cancelled, state);
 }
-
 
 // Function to log error messages
 static void log_error(int err)
@@ -277,21 +275,22 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number)
     out_stream = avformat_new_stream(output_format_context, codec_context->codec);
     if (!out_stream)
     {
-        printf("Failed allocating output stream\n");
         fprintf(stderr, "Failed allocating output stream\n");
         exit(1);
     }
+    printf("output stream created\n");
     ret = avcodec_parameters_from_context(out_stream->codecpar, codec_context);
     if (ret < 0)
     {
         fprintf(stderr, "Failed to copy codec parameters to output stream\n");
         exit(1);
     }
-
+    printf("codec parameters copied to output stream\n");
     avformat_write_header(output_format_context, NULL);
     for (;;)
     {
 		if (atomic_load(&cancelled)) {
+            printf("cancellation requested\n");
 			break;
 		}
         bool ok = demuxer_recv_packet(sock, packet);
@@ -335,7 +334,6 @@ exit:
 
     return 0; // Success
 }
-
 */
 import "C"
 import (
@@ -357,7 +355,7 @@ func (d *Decoder) Decode(outputFilename string) error {
 	outputFilenameC := C.CString(outputFilename)
 	defer C.free(unsafe.Pointer(outputFilenameC))
 	go func() {
-		d.ctx.Done()
+		<-d.ctx.Done()
 		d.cancel()
 	}()
 	ret := C.convert_to_mp4(outputFilenameC, C.uint32_t(d.portNumber))
