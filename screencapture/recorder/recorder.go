@@ -12,23 +12,23 @@ import (
 	"net"
 	"sync"
 
+	lumber "github.com/LambdatestIncPrivate/ios-quicktime-capture/logger"
 	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture"
 	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
 	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/decoder"
-	"github.com/sirupsen/logrus"
 )
 
 type Recorder struct {
 	libUsbCtx *C.libusb_context
 	ctx       context.Context
 	cancel    context.CancelFunc
-	logger    logrus.Logger
+	logger    lumber.Logger
 	wg        sync.WaitGroup
 	device    screencapture.IosDevice
 }
 
-func NewRecorder() *Recorder {
-	r := &Recorder{}
+func NewRecorder(log lumber.Logger) *Recorder {
+	r := &Recorder{logger: log}
 	C.libusb_init(&r.libUsbCtx)
 	return r
 }
