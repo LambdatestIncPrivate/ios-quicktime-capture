@@ -39,7 +39,7 @@ func (r *Recorder) Close() {
 	C.libusb_exit(r.libUsbCtx)
 }
 
-func (r *Recorder) ConfigureDevice(udid string) error {
+func (r *Recorder) ConfigureDevice(udid string, quickTimeMode bool) error {
 	device, err := findDevice(udid)
 	r.device = device
 	if err != nil {
@@ -47,6 +47,9 @@ func (r *Recorder) ConfigureDevice(udid string) error {
 	}
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 	r.wg = sync.WaitGroup{}
+	if !quickTimeMode {
+		return nil
+	}
 	r.deactivate()
 	return r.activate()
 }
@@ -88,6 +91,24 @@ func (r *Recorder) activate() error {
 	return nil
 }
 
+func (r *Recorder) RecordViaDevice(port int, outPath string) error {
+	decoder := decoder.NewDecoder(r.ctx, port)
+	r.wg.Add(1)
+	go func() {
+		defer r.wg.Done()
+		err := decoder.Decode(outPath)
+		if err != nil {
+			r.logger.Errorf("error decoding: %v", err)
+		}
+	}()
+	r.wg.Add(1)
+	go func() {
+		defer r.wg.Done()
+		<-r.ctx.Done() // Blocks until the context is cancelled.
+		r.logger.Infof("Context cancelled, stopping server...")
+	}()
+	return nil
+}
 func (r *Recorder) Record(port int, outPath string) error {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
