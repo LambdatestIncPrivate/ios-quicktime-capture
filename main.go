@@ -25,17 +25,17 @@ import (
 const version = "v0.6-beta"
 
 func main() {
-	// var ctx *C.libusb_context
-	// C.libusb_init(&ctx)
-	// defer C.libusb_exit(ctx)
+	var ctx *C.libusb_context
+	C.libusb_init(&ctx)
+	defer C.libusb_exit(ctx)
 
-	// device, err := findDevice("")
-	// if err != nil {
-	// 	printErrJSON(err, "no device found to use")
-	// 	return
-	// }
-	// deactivate(device)
-	// activate(device)
+	device, err := findDevice("")
+	if err != nil {
+		printErrJSON(err, "no device found to use")
+		return
+	}
+	deactivate(device)
+	activate(device)
 	ctxWithCancel, cancel := context.WithCancel(context.Background())
 	defer cancel() // Ensure any resources are cleaned up properly
 
@@ -47,8 +47,8 @@ func main() {
 		cancel() // Cancel the context when SIGINT is received
 	}()
 
-	// record(ctxWithCancel, device)
-	recordViaDevice(ctxWithCancel)
+	record(ctxWithCancel, device)
+	// recordViaDevice(ctxWithCancel)
 	// sleep aded on purpose to keep the program running until mp4
 	time.Sleep(5 * time.Second)
 
@@ -122,13 +122,13 @@ func record(ctx context.Context, device screencapture.IosDevice) {
 
 	log.Printf("Server listening on port %s", port)
 
-	// decoder := decoder.NewDecoder(ctx, 9009)
-	// go func() {
-	// 	err := decoder.Decode("/Users/prncvrm/gowork/src/github.com/LambdatestIncPrivate/ios-quicktime-capture/output.mp4")
-	// 	if err != nil {
-	// 		printErrJSON(err, "Error decoding")
-	// 	}
-	// }()
+	decoder := decoder.NewDecoder(ctx, 9009)
+	go func() {
+		err := decoder.Decode("/Users/prncvrm/gowork/src/github.com/LambdatestIncPrivate/ios-quicktime-capture/output.mp4")
+		if err != nil {
+			printErrJSON(err, "Error decoding")
+		}
+	}()
 	go func() {
 		<-ctx.Done() // Blocks until the context is cancelled.
 		log.Printf("Context cancelled, stopping server...")
