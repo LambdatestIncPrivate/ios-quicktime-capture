@@ -161,7 +161,7 @@ static bool demuxer_recv_packet(int *sock, AVPacket *packet)
 }
 
 // Function to initialize and run the TCP server
-int convert_to_mp4(const char *output_filename, const uint32_t port_number)
+int convert_to_mp4(const char *output_filename, const uint32_t port_number, const char *address)
 {
     AVFormatContext *input_format_context = NULL, *output_format_context = NULL;
     AVCodecContext *codec_context = NULL;
@@ -182,9 +182,10 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number)
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = htons(port_number);
-    serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serverAddr.sin_addr.s_addr = inet_addr(address);
 
     // Connect to the server
+    printf("connecting to server with address %s and port %d\n", address, port_number);
     if (connect(sock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
     {
         fprintf(stderr, "Connection failed\n");
@@ -353,11 +354,15 @@ import (
 
 type Decoder struct {
 	ctx        context.Context
+	address    string
 	portNumber int
 }
 
-func NewDecoder(ctx context.Context, portNumber int) *Decoder {
-	return &Decoder{ctx: ctx, portNumber: portNumber}
+func NewDecoder(ctx context.Context, address string, portNumber int) *Decoder {
+	if address == "" {
+		address = "127.0.0.1"
+	}
+	return &Decoder{ctx: ctx, address: address, portNumber: portNumber}
 }
 
 func (d *Decoder) Decode(outputFilename string) (err error) {
@@ -372,7 +377,7 @@ func (d *Decoder) Decode(outputFilename string) (err error) {
 		<-d.ctx.Done()
 		d.cancel()
 	}()
-	ret := C.convert_to_mp4(outputFilenameC, C.uint32_t(d.portNumber))
+	ret := C.convert_to_mp4(outputFilenameC, C.uint32_t(d.portNumber), C.CString(d.address))
 	if ret != 0 {
 		return fmt.Errorf("error converting to mp4, exit status not zero")
 	}

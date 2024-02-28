@@ -92,8 +92,8 @@ func (r *Recorder) activate() error {
 	return nil
 }
 
-func (r *Recorder) RecordViaDevice(port int, outPath string) error {
-	decoder := decoder.NewDecoder(r.ctx, port)
+func (r *Recorder) RecordViaDevice(port int, address, outPath string) error {
+	decoder := decoder.NewDecoder(r.ctx, address, port)
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
@@ -117,7 +117,7 @@ func (r *Recorder) Record(port int, outPath string) error {
 		return err
 	}
 	r.logger.Infof("Server listening on port %d", port)
-	decoder := decoder.NewDecoder(r.ctx, port)
+	decoder := decoder.NewDecoder(r.ctx, "", port)
 	r.wg.Add(1)
 	go func() {
 		defer r.wg.Done()
