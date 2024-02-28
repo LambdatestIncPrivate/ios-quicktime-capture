@@ -116,7 +116,6 @@ func (r *Recorder) Record(port int, outPath string) error {
 		r.logger.Errorf("unable to start tcp server at port %d: %v", port, err)
 		return err
 	}
-	defer ln.Close()
 	r.logger.Infof("Server listening on port %d", port)
 	decoder := decoder.NewDecoder(r.ctx, port)
 	r.wg.Add(1)
@@ -134,29 +133,33 @@ func (r *Recorder) Record(port int, outPath string) error {
 		r.logger.Infof("Context cancelled, stopping server...")
 		ln.Close() // This will cause ln.Accept() to return an error.
 	}()
-	for {
-		conn, err := ln.Accept()
+	go func() {
+		for {
+			conn, err := ln.Accept()
 
-		if err != nil {
-			// Check if the error is because of the listener being closed.
-			select {
-			case <-r.ctx.Done():
-				r.logger.Infof("Server stopped due to context cancellation.")
-				return nil
-			default:
-				r.logger.Errorf("Error accepting connection: %s", err)
+			if err != nil {
+				// Check if the error is because of the listener being closed.
+				select {
+				case <-r.ctx.Done():
+					r.logger.Infof("Server stopped due to context cancellation.")
+					return
+				default:
+					r.logger.Errorf("Error accepting connection: %s", err)
+				}
+				return
 			}
-			return errors.New("error accepting connection")
+			// Handle the connection in a new goroutine.
+			r.wg.Add(1)
+			go func() {
+				defer r.wg.Done()
+				defer conn.Close()
+				writer := coremedia.NewAVCustomWriter(conn)
+				r.startWithConsumer(writer)
+			}()
 		}
-		// Handle the connection in a new goroutine.
-		r.wg.Add(1)
-		go func() {
-			defer r.wg.Done()
-			defer conn.Close()
-			writer := coremedia.NewAVCustomWriter(conn)
-			r.startWithConsumer(writer)
-		}()
-	}
+	}()
+	return nil
+
 }
 
 func (r *Recorder) startWithConsumer(consumer screencapture.CmSampleBufConsumer) error {

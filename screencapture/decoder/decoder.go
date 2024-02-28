@@ -286,7 +286,16 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number)
         exit(1);
     }
     printf("codec parameters copied to output stream\n");
-    avformat_write_header(output_format_context, NULL);
+    ret = avformat_write_header(output_format_context, NULL);
+    if (ret < 0) {
+        // Log the error
+        char err_buf[AV_ERROR_MAX_STRING_SIZE];
+        av_strerror(ret, err_buf, AV_ERROR_MAX_STRING_SIZE);
+        fprintf(stderr, "Failed to write header: %s\n", err_buf);
+        // Handle the error appropriately
+        return -1;
+    }
+    printf("done writing header\n");
     for (;;)
     {
 		if (atomic_load(&cancelled)) {
@@ -351,7 +360,12 @@ func NewDecoder(ctx context.Context, portNumber int) *Decoder {
 	return &Decoder{ctx: ctx, portNumber: portNumber}
 }
 
-func (d *Decoder) Decode(outputFilename string) error {
+func (d *Decoder) Decode(outputFilename string) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic occurred in C.convert_to_mp4: %v", r)
+		}
+	}()
 	outputFilenameC := C.CString(outputFilename)
 	defer C.free(unsafe.Pointer(outputFilenameC))
 	go func() {
