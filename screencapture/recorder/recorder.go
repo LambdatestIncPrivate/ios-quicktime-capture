@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture"
 	"github.com/LambdatestIncPrivate/ios-quicktime-capture/screencapture/coremedia"
@@ -37,6 +38,7 @@ func NewRecorder() *Recorder {
 func (r *Recorder) Close() {
 	r.cancel()
 	r.wg.Wait()
+	time.Sleep(1 * time.Second) // added on purpose to keep the program running until mp4 is generated
 	C.libusb_exit(r.libUsbCtx)
 }
 
@@ -101,6 +103,7 @@ func (r *Recorder) RecordViaDevice(port int, address, outPath string) error {
 		if err != nil {
 			r.logger.Errorf("error decoding: %v", err)
 		}
+		r.logger.Infof("Decoder stopped")
 	}()
 	r.wg.Add(1)
 	go func() {

@@ -149,12 +149,12 @@ static bool demuxer_recv_packet(int *sock, AVPacket *packet)
     }
     if (pts & PACKET_FLAG_CONFIG)
     {
-        printf("packet is config frame\n");
+        custom_log("packet is config frame\n");
         packet->pts = AV_NOPTS_VALUE;
     }
     if (pts & PACKET_FLAG_KEY_FRAME)
     {
-        printf("packet is key frame\n");
+        custom_log("packet is key frame\n");
         packet->flags |= AV_PKT_FLAG_KEY;
     }
     return true;
@@ -185,10 +185,10 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     serverAddr.sin_addr.s_addr = inet_addr(address);
 
     // Connect to the server
-    printf("connecting to server with address %s and port %d\n", address, port_number);
+    custom_log("connecting to server\n");
     if (connect(sock, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) < 0)
     {
-        fprintf(stderr, "Connection failed\n");
+        custom_log("Connection failed\n");
         close(sock); // Fix: Close socket on error
         return -1;   // Early return on error
     }
@@ -198,7 +198,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     codec = avcodec_find_decoder(AV_CODEC_ID_H264);
     if (!codec)
     {
-        fprintf(stderr, "Codec not found\n");
+        custom_log("Codec not found\n");
         exit(1);
     }
 
@@ -206,7 +206,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     if (!codec_context)
     {
         LOG_OOM();
-        fprintf(stderr, "Could not allocate video codec context\n");
+        custom_log("Could not allocate video codec context\n");
         close(sock);
         exit(1);
     }
@@ -221,19 +221,19 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     bool ok = demuxer_recv_packet(sock, packet);
     if (!ok)
     {
-        printf("end of stream\n");
+        custom_log("end of stream");
         goto exit;
     }
     if (packet->pts != AV_NOPTS_VALUE)
     {
-        printf("packet pts: %lld and isn't config packet, first packet must be config always\n", packet->pts);
+        custom_log("packet pts: isn't config packet, first packet must be config always");
         goto exit;
     }
     uint8_t header[PACKET_WIDTH_HEIGHT];
     ssize_t r = net_recv_all(sock, header, PACKET_WIDTH_HEIGHT);
     if (r < PACKET_WIDTH_HEIGHT)
     {
-        printf("end of stream\n");
+        custom_log("end of stream");
         goto exit;
     }
 
@@ -257,13 +257,14 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     const AVOutputFormat *format = find_muxer(format_name);
     if (!format)
     {
-        printf("Could not find muxer");
+        custom_log("Could not find muxer");
         return false;
     }
 
     output_format_context = avformat_alloc_context();
     if (!output_format_context)
     {
+        custom_log("Could not allocate output context");
         fprintf(stderr, "Could not allocate output context\n");
         exit(1);
     }
@@ -271,15 +272,15 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     avio_open(&output_format_context->pb, output_filename, AVIO_FLAG_WRITE);
     output_format_context->oformat = format;
     av_dict_set(&output_format_context->metadata, "title", "Recorder", 0);
-    printf("recorded file: %s\n", output_filename);
-
+    custom_log("output format context created");
+    custom_log("recorded file");
     out_stream = avformat_new_stream(output_format_context, codec_context->codec);
     if (!out_stream)
     {
         fprintf(stderr, "Failed allocating output stream\n");
         exit(1);
     }
-    printf("output stream created\n");
+    custom_log("output stream created");
     ret = avcodec_parameters_from_context(out_stream->codecpar, codec_context);
     if (ret < 0)
     {
@@ -297,16 +298,17 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
         return -1;
     }
     printf("done writing header\n");
+    custom_log("done writing header");
     for (;;)
     {
 		if (atomic_load(&cancelled)) {
-            printf("cancellation requested\n");
+            custom_log("cancellation requested");
 			break;
 		}
         bool ok = demuxer_recv_packet(sock, packet);
         if (!ok)
         {
-            printf("end of stream\n");
+            custom_log("end of stream");
             break;
         }
 
@@ -325,9 +327,11 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
 exit:
     if (output_format_context)
     {
+        custom_log("closing output format context");
         av_write_trailer(output_format_context);
         avio_closep(&output_format_context->pb);
         avformat_free_context(output_format_context);
+        custom_log("output format context closed");
     }
     if (codec_context)
     {
