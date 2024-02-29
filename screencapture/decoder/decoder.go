@@ -38,6 +38,11 @@ static void log_error(int err)
     fprintf(stderr, "Error: %s\n", err_buf);
 }
 
+// Function to log custom messages
+static void custom_log(const char *msg)
+{
+    printf("Encoder --> %s\n", msg);
+}
 static void LOG_OOM(void)
 {
     fprintf(stderr, "Out of memory\n");
