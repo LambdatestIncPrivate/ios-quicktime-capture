@@ -264,7 +264,6 @@ static bool demuxer_recv_packet(int *sock, AVPacket *packet)
     }
     if (pts & PACKET_FLAG_CONFIG)
     {
-        custom_log("packet is config frame");
         packet->pts = AV_NOPTS_VALUE;
     }
     if (pts & PACKET_FLAG_KEY_FRAME)
