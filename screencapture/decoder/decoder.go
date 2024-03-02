@@ -1,7 +1,7 @@
 package decoder
 
 /*
-#cgo pkg-config: libavformat libavcodec libavutil
+#cgo pkg-config: libavformat libavcodec libavutil libavfilter
 #include <libavutil/avutil.h>
 #include "decoder.h"
 

@@ -10,11 +10,21 @@
 #include <libavutil/imgutils.h>
 #include <libavutil/error.h>
 #include <stdatomic.h>
+#include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
+#include <libavfilter/avfilter.h>
+
+typedef struct FilteringContext
+{
+    AVFilterContext *buffersrc_ctx;
+    AVFilterContext *buffersink_ctx;
+    AVFilterGraph *filter_graph;
+} FilteringContext;
 
 #define BUFFER_SIZE 12
-static const AVRational SCRCPY_TIME_BASE = {1, 1000000000}; // timestamps in us
+static const AVRational TIME_BASE = {1, 1000000000}; // timestamps in us
 #define PACKET_HEADER_SIZE 12
-#define PACKET_WIDTH_HEIGHT 8
+#define PACKET_ORIENTATION_WIDTH_HEIGHT 12
 #define PACKET_FLAG_KEY_FRAME (UINT64_C(1) << 62)
 #define PACKET_FLAG_CONFIG (UINT64_C(1) << 63)
 #define PACKET_PTS_MASK (PACKET_FLAG_KEY_FRAME - 1)
@@ -23,8 +33,109 @@ extern void GoLoggingCallback(char *msg);
 _Atomic bool cancelled = false;
 
 // Function to set the cancellation flag
-void set_cancelled(bool state) {
+void set_cancelled(bool state)
+{
     atomic_store(&cancelled, state);
+}
+
+int init_filter_graph(FilteringContext *fctx, int width, int height, enum AVPixelFormat pix_fmt)
+{
+    char args[512];
+    int ret = 0;
+    const AVFilter *buffersrc = avfilter_get_by_name("buffer");
+    const AVFilter *buffersink = avfilter_get_by_name("buffersink");
+    AVFilterContext *buffersrc_ctx = NULL;
+    AVFilterContext *buffersink_ctx = NULL;
+    AVFilterGraph *filter_graph = avfilter_graph_alloc();
+
+    if (!filter_graph)
+    {
+        GoLoggingCallback("Could not allocate filter graph.");
+        return AVERROR(ENOMEM);
+    }
+
+    // Prepare arguments for the buffer source filter
+    snprintf(args, sizeof(args),
+             "video_size=%dx%d:pix_fmt=%d:time_base=1/1000000000:pixel_aspect=1/1",
+             height, width, pix_fmt);
+
+    // Create the buffer source filter context
+    ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in", args, NULL, filter_graph);
+    if (ret < 0)
+    {
+        GoLoggingCallback("Could not create buffer source.");
+        goto end;
+    }
+
+    // Create the buffer sink filter context
+    ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out", NULL, NULL, filter_graph);
+    if (ret < 0)
+    {
+        GoLoggingCallback("Could not create buffer sink.");
+        goto end;
+    }
+
+    // Create and add the rotate filter; rotates by 90 degrees anticlockwise
+    AVFilterContext *rotate_ctx;
+
+    ret = avfilter_graph_create_filter(&rotate_ctx, avfilter_get_by_name("transpose"), "rotate", "dir=clock", NULL, filter_graph);
+    if (ret < 0)
+    {
+        GoLoggingCallback("Could not create rotate filter.");
+        goto end;
+    }
+
+    // Link the filters together: buffersrc -> rotate -> buffersink
+    ret = avfilter_link(buffersrc_ctx, 0, rotate_ctx, 0);
+    if (ret >= 0)
+        ret = avfilter_link(rotate_ctx, 0, buffersink_ctx, 0);
+    if (ret < 0)
+    {
+        GoLoggingCallback("Error connecting filters.");
+        goto end;
+    }
+
+    // Configure the graph
+    ret = avfilter_graph_config(filter_graph, NULL);
+    if (ret < 0)
+    {
+        GoLoggingCallback("Error configuring the filter graph.");
+        goto end;
+    }
+
+    // Fill FilteringContext struct
+    fctx->buffersrc_ctx = buffersrc_ctx;
+    fctx->buffersink_ctx = buffersink_ctx;
+    fctx->filter_graph = filter_graph;
+    return 0;
+
+end:
+    if (filter_graph)
+        avfilter_graph_free(&filter_graph);
+    return ret;
+}
+
+int filter_frame(FilteringContext *fctx, AVFrame *frame, AVFrame *filt_frame)
+{
+    int ret;
+    // Send the frame to the input of the filtergraph
+    ret = av_buffersrc_add_frame_flags(fctx->buffersrc_ctx, frame, AV_BUFFERSRC_FLAG_KEEP_REF);
+    if (ret < 0)
+    {
+        GoLoggingCallback("Error while feeding the filtergraph");
+        return ret;
+    }
+    // Get the filtered frame from the output of the filtergraph
+    ret = av_buffersink_get_frame(fctx->buffersink_ctx, filt_frame);
+    if (ret < 0)
+    {
+        // If no more frames are available for filtering, it's not necessarily an error
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+            return 0;
+        GoLoggingCallback("Error while getting the filtered frame");
+        return ret;
+    }
+    return 0;
 }
 
 // Function to log error messages
@@ -54,7 +165,7 @@ ssize_t net_recv_all(int soc, void *buf, size_t len)
 
 static inline void recorder_rescale_packet(AVStream *stream, AVPacket *packet)
 {
-    av_packet_rescale_ts(packet, SCRCPY_TIME_BASE, stream->time_base);
+    av_packet_rescale_ts(packet, TIME_BASE, stream->time_base);
 }
 static AVPacket *recorder_packet_ref(const AVPacket *packet)
 {
@@ -203,7 +314,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     if (!codec)
     {
         custom_log("Codec not found");
-        exit(1);
+        return -1; // Codec not found
     }
 
     codec_context = avcodec_alloc_context3(codec);
@@ -212,15 +323,15 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
         LOG_OOM();
         custom_log("Could not allocate video codec context");
         close(sock);
-        exit(1);
+        return -1; 
     }
     AVPacket *packet = av_packet_alloc();
     if (!packet)
     {
         LOG_OOM();
         avcodec_free_context(&codec_context); // Fix: Free codec_context on error
-        close(sock);                          // Fix: Close socket on error
-        return -1;                            // Early return on error
+        close(sock);                          
+        return -1;                           
     }
     bool ok = demuxer_recv_packet(sock, packet);
     if (!ok)
@@ -233,9 +344,9 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
         custom_log("packet pts: isn't config packet, first packet must be config always");
         goto exit;
     }
-    uint8_t header[PACKET_WIDTH_HEIGHT];
-    ssize_t r = net_recv_all(sock, header, PACKET_WIDTH_HEIGHT);
-    if (r < PACKET_WIDTH_HEIGHT)
+    uint8_t header[PACKET_ORIENTATION_WIDTH_HEIGHT];
+    ssize_t r = net_recv_all(sock, header, PACKET_ORIENTATION_WIDTH_HEIGHT);
+    if (r < PACKET_ORIENTATION_WIDTH_HEIGHT)
     {
         custom_log("end of stream");
         goto exit;
@@ -243,6 +354,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
 
     uint64_t width = read32be(header);
     uint32_t height = read32be(&header[4]);
+    uint32_t orientation = read32be(&header[8]);
 
     codec_context->width = width;
     codec_context->height = height;
@@ -285,6 +397,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
         exit(1);
     }
     custom_log("output stream created");
+    out_stream->start_time = 0;
     ret = avcodec_parameters_from_context(out_stream->codecpar, codec_context);
     if (ret < 0)
     {
@@ -292,8 +405,49 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
         exit(1);
     }
     printf("codec parameters copied to output stream");
+    FilteringContext fctx;
+    AVCodec *encoder;
+    AVCodecContext *encoder_ctx;
+
+    if (orientation == 1)
+    {
+        out_stream->codecpar->width = height;
+        out_stream->codecpar->height = width;
+        encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+        if (!encoder)
+        {
+            GoLoggingCallback("Codec not found");
+            return -1;
+        }
+
+        encoder_ctx = avcodec_alloc_context3(encoder);
+        if (!encoder_ctx)
+        {
+            GoLoggingCallback("Could not allocate video codec context");
+            return -1;
+        }
+
+        encoder_ctx->height = width;
+        encoder_ctx->width = height;
+        encoder_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+        encoder_ctx->time_base = TIME_BASE;
+
+        if (avcodec_open2(encoder_ctx, encoder, NULL) < 0)
+        {
+            GoLoggingCallback("Could not open codec");
+            return -1;
+        }
+
+        if (init_filter_graph(&fctx, codec_context->height, codec_context->width, codec_context->pix_fmt) < 0)
+        {
+            GoLoggingCallback("Could not initialize the filter graph");
+            return -1;
+        }
+    }
+
     ret = avformat_write_header(output_format_context, NULL);
-    if (ret < 0) {
+    if (ret < 0)
+    {
         // Log the error
         char err_buf[AV_ERROR_MAX_STRING_SIZE];
         av_strerror(ret, err_buf, AV_ERROR_MAX_STRING_SIZE);
@@ -301,14 +455,14 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
         // Handle the error appropriately
         return -1;
     }
-    printf("done writing header");
     custom_log("done writing header");
     for (;;)
     {
-		if (atomic_load(&cancelled)) {
+        if (atomic_load(&cancelled))
+        {
             custom_log("cancellation requested");
-			break;
-		}
+            break;
+        }
         bool ok = demuxer_recv_packet(sock, packet);
         if (!ok)
         {
@@ -325,8 +479,68 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
 
         AVStream *video_stream = output_format_context->streams[0];
         recorder_rescale_packet(video_stream, rec);
-        av_interleaved_write_frame(output_format_context, rec);
-        av_packet_unref(rec);
+        if (orientation == 1)
+        {
+            if (avcodec_send_packet(codec_context, rec) < 0)
+            {
+                // Handle send packet error
+                av_packet_unref(rec);
+                GoLoggingCallback("Error while sending packet to decoder");
+                continue;
+            }
+            AVFrame *frame = av_frame_alloc();
+            int response = 0;
+            response = avcodec_receive_frame(codec_context, frame);
+            if (response < 0)
+            {
+                av_frame_free(&frame);
+                av_packet_unref(rec);
+                continue; // Need more data
+            }
+            AVFrame *filt_frame = av_frame_alloc();
+            if (!filt_frame)
+            {
+                GoLoggingCallback("OOM - av_frame_alloc failed");
+                av_frame_free(&frame);
+                av_packet_unref(rec);
+                continue;
+            }
+
+            if (filter_frame(&fctx, frame, filt_frame) < 0)
+            {
+                GoLoggingCallback("Error while filtering frame");
+                av_frame_free(&frame);
+                av_packet_unref(rec);
+            }
+            // Encode frame
+            if (avcodec_send_frame(encoder_ctx, filt_frame) < 0)
+            {
+                av_frame_free(&frame);
+                av_packet_unref(rec);
+                av_frame_free(&filt_frame);
+                GoLoggingCallback("Error while sending frame to encoder, skipping");
+                continue;
+            }
+            AVPacket *out_packet = av_packet_alloc();
+            if (avcodec_receive_packet(encoder_ctx, out_packet) < 0)
+            {
+                av_frame_free(&frame);
+                av_packet_unref(rec);
+                av_frame_free(&filt_frame);
+                GoLoggingCallback("Error while receiving packet from encoder, skipping");
+                continue;
+            }
+            av_interleaved_write_frame(output_format_context, out_packet);
+            av_packet_free(&out_packet);
+            av_packet_unref(rec);
+            av_frame_free(&frame);
+            av_frame_free(&filt_frame);
+        }
+        else
+        {
+            av_interleaved_write_frame(output_format_context, rec);
+            av_packet_unref(rec);
+        }
     }
 exit:
     if (output_format_context)
