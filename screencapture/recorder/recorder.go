@@ -20,17 +20,20 @@ import (
 )
 
 type Recorder struct {
-	libUsbCtx *C.libusb_context
-	ctx       context.Context
-	cancel    context.CancelFunc
-	logger    *logrus.Logger
-	wg        sync.WaitGroup
-	device    screencapture.IosDevice
+	libUsbCtx     *C.libusb_context
+	ctx           context.Context
+	cancel        context.CancelFunc
+	logger        *logrus.Logger
+	wg            sync.WaitGroup
+	device        screencapture.IosDevice
+	quickTimeMode bool
 }
 
-func NewRecorder(logger *logrus.Logger) *Recorder {
-	r := &Recorder{logger: logger}
-	C.libusb_init(&r.libUsbCtx)
+func NewRecorder(logger *logrus.Logger, quickTimeMode bool) *Recorder {
+	r := &Recorder{logger: logger, quickTimeMode: quickTimeMode}
+	if quickTimeMode {
+		C.libusb_init(&r.libUsbCtx)
+	}
 	return r
 }
 
@@ -38,10 +41,12 @@ func (r *Recorder) Close() {
 	r.cancel()
 	r.wg.Wait()
 	time.Sleep(1 * time.Second) // added on purpose to keep the program running until mp4 is generated
-	C.libusb_exit(r.libUsbCtx)
+	if r.quickTimeMode {
+		C.libusb_exit(r.libUsbCtx)
+	}
 }
 
-func (r *Recorder) ConfigureDevice(udid string, quickTimeMode bool) error {
+func (r *Recorder) ConfigureDevice(udid string) error {
 	device, err := findDevice(udid)
 	r.device = device
 	if err != nil {
