@@ -51,14 +51,17 @@ func (d *Decoder) Decode(outputFilename string) (err error) {
 	outputFilenameC := C.CString(outputFilename)
 	defer C.free(unsafe.Pointer(outputFilenameC))
 	go func() {
+		logger.Info("waiting for context to be done")
 		<-d.ctx.Done()
 		d.cancel()
+		logger.Info("context cancelled")
 	}()
 	ret := C.convert_to_mp4(outputFilenameC, C.uint32_t(d.portNumber), C.CString(d.address))
 	if ret != 0 {
 		logger.Errorf("error converting to mp4, exit status not zero")
 		return fmt.Errorf("error converting to mp4, exit status not zero")
 	}
+	logger.Info("mp4 conversion completed")
 	return nil
 }
 
