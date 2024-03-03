@@ -382,7 +382,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     {
         custom_log("Could not allocate output context");
         fprintf(stderr, "Could not allocate output context\n");
-        exit(1);
+        return -1;
     }
 
     avio_open(&output_format_context->pb, output_filename, AVIO_FLAG_WRITE);
@@ -394,7 +394,8 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     if (!out_stream)
     {
         fprintf(stderr, "Failed allocating output stream\n");
-        exit(1);
+        custom_log("Failed allocating output stream");
+        return -1;
     }
     custom_log("output stream created");
     out_stream->start_time = 0;
@@ -402,7 +403,8 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
     if (ret < 0)
     {
         fprintf(stderr, "Failed to copy codec parameters to output stream\n");
-        exit(1);
+        custom_log("Failed to copy codec parameters to output stream");
+       return -1;
     }
     printf("codec parameters copied to output stream");
     FilteringContext fctx;
