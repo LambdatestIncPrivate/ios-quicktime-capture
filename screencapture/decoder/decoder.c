@@ -38,6 +38,20 @@ void set_cancelled(bool state)
     atomic_store(&cancelled, state);
 }
 
+// Function to set the timeout for socket operations
+int set_socket_timeout(int sock, long sec, long usec) {
+    struct timeval timeout;
+    timeout.tv_sec = sec;
+    timeout.tv_usec = usec;
+
+    // Set receive timeout
+    if (setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&timeout, sizeof(timeout)) < 0) {
+        perror("setsockopt failed");
+        return -1;
+    }
+    return 0;
+}
+
 int init_filter_graph(FilteringContext *fctx, int width, int height, enum AVPixelFormat pix_fmt)
 {
     char args[512];
@@ -458,6 +472,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
         return -1;
     }
     custom_log("done writing header");
+    set_socket_timeout(sock, 20, 0);
     for (;;)
     {
         if (atomic_load(&cancelled))
