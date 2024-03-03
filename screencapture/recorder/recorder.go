@@ -54,9 +54,6 @@ func (r *Recorder) ConfigureDevice(udid string) error {
 	}
 	r.ctx, r.cancel = context.WithCancel(context.Background())
 	r.wg = sync.WaitGroup{}
-	if !quickTimeMode {
-		return nil
-	}
 	r.deactivate()
 	return r.activate()
 }
