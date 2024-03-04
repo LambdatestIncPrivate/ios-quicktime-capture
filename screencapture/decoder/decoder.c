@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include <libavformat/avformat.h>
