@@ -564,8 +564,21 @@ exit:
     if (output_format_context)
     {
         custom_log("closing output format context");
-        av_write_trailer(output_format_context);
-        avio_closep(&output_format_context->pb);
+        int ret = 0;
+        ret = av_write_trailer(output_format_context);
+        if (ret < 0) {
+            char error_buf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(ret, error_buf, AV_ERROR_MAX_STRING_SIZE);
+            custom_log("write trailer error");
+            custom_log(error_buf);
+        }
+        ret = avio_closep(&output_format_context->pb);
+        if (ret < 0) {
+            char error_buf[AV_ERROR_MAX_STRING_SIZE];
+            av_strerror(ret, error_buf, AV_ERROR_MAX_STRING_SIZE);
+            custom_log("avio closep error");
+            custom_log(error_buf);
+        }
         avformat_free_context(output_format_context);
         custom_log("output format context closed");
     }
