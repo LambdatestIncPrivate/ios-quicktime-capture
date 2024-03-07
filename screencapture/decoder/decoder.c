@@ -33,6 +33,8 @@ extern void GoLoggingCallback(char *msg);
 // Global cancellation flag
 _Atomic bool cancelled = false;
 
+static uint64_t initial_pts = UINT64_MAX; // Use UINT64_MAX to indicate unset initial PTS
+
 // Function to set the cancellation flag
 void set_cancelled(bool state)
 {
@@ -254,7 +256,7 @@ static bool demuxer_recv_packet(int *sock, AVPacket *packet)
     //  `-- config packet
 
     uint8_t header[PACKET_HEADER_SIZE];
-    ssize_t r = net_recv_all(sock, header, PACKET_HEADER_SIZE);
+    ssize_t r = net_recv_all(*sock, header, PACKET_HEADER_SIZE);
     if (r < PACKET_HEADER_SIZE)
     {
         return false;
@@ -266,15 +268,19 @@ static bool demuxer_recv_packet(int *sock, AVPacket *packet)
         LOG_OOM();
         return false;
     }
-    r = net_recv_all(sock, packet->data, len);
+    r = net_recv_all(*sock, packet->data, len);
     if (r < 0 || ((uint32_t)r) < len)
     {
         av_packet_unref(packet);
         return false;
     }
+
+    if (initial_pts == UINT64_MAX && pts != 0 && !(pts & PACKET_FLAG_CONFIG)) {
+        initial_pts = pts & PACKET_PTS_MASK; // Set initial PTS on the first non-config packet
+    }
     if (pts > 0)
     {
-        packet->pts = pts & PACKET_PTS_MASK;
+        packet->pts = (pts & PACKET_PTS_MASK) - initial_pts;
         packet->dts = packet->pts;
     }
     if (pts & PACKET_FLAG_CONFIG)
@@ -348,7 +354,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
         close(sock);                          
         return -1;                           
     }
-    bool ok = demuxer_recv_packet(sock, packet);
+    bool ok = demuxer_recv_packet(&sock, packet);
     if (!ok)
     {
         custom_log("end of stream");
@@ -481,7 +487,7 @@ int convert_to_mp4(const char *output_filename, const uint32_t port_number, cons
             custom_log("cancellation requested");
             break;
         }
-        bool ok = demuxer_recv_packet(sock, packet);
+        bool ok = demuxer_recv_packet(&sock, packet);
         if (!ok)
         {
             custom_log("end of stream");
