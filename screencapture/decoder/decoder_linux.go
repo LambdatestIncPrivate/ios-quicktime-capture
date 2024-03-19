@@ -1,5 +1,6 @@
 package decoder
 
+import "C"
 import (
 	"context"
 	"errors"
