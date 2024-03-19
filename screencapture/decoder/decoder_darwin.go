@@ -3,7 +3,7 @@ package decoder
 /*
 #cgo pkg-config: libavformat libavcodec libavutil libavfilter
 #include <libavutil/avutil.h>
-#include "decoder.h"
+#include "decoder_darwin.h"
 
 */
 import "C"

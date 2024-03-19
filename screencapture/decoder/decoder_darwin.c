@@ -1,5 +1,5 @@
 #include <stdint.h>
-#include "decoder.h"
+#include "decoder_darwin.h"
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdio.h>
